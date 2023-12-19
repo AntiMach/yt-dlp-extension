@@ -1,5 +1,6 @@
-const BASE_URL = "SERVER_URL";
+const BASE_URL = "";
 
+/** @returns {Promise<HTMLElement>} */
 function tryQuerySelect(selector, maxTries = 10) {
     return new Promise((resolve, reject) => {
         let tries = 0;
@@ -19,10 +20,30 @@ function tryQuerySelect(selector, maxTries = 10) {
     });
 }
 
+/** @returns {Promise<HTMLElement[]>} */
+function tryQuerySelectAll(selector, maxTries = 10) {
+    return new Promise((resolve, reject) => {
+        let tries = 0;
+
+        setInterval(() => {
+            const element = document.querySelectorAll(selector);
+            tries++;
+
+            if (element) {
+                resolve(element);
+            }
+
+            if (tries > maxTries) {
+                reject("Could not find element");
+            }
+        }, 1000);
+    });
+}
+
 function normalDownloadButton() {
-    const download_button = document.createElement("a");
-    download_button.href = `${BASE_URL}/download?url=${window.location.href}`;
+    const download_button = document.createElement("button");
     download_button.innerHTML = "Download";
+    download_button.className = "yt-dlp-download-button"
     download_button.style = `
         background-color: #2f2f2f;
         border: none;
@@ -76,6 +97,10 @@ function normalDownloadButton() {
         );
     });
 
+    download_button.addEventListener("click", async function () {
+        window.location.href = `${BASE_URL}/download?url=${window.location.href}`;
+    });
+
     return download_button;
 }
 
@@ -94,15 +119,15 @@ function shortsDownloadButton() {
         font-size: 14px;
         font-family: Roboto, Arial, sans-serif;
         font-weight: 500;
-        width: 100%;
+        width: 50px;
         aspect-ratio: 1;
         text-wrap: nowrap;
         overflow: hidden;
         cursor: pointer;
+        fill: currentColor;
         display: flex;
         justify-content: center;
         align-items: center;
-        fill: currentColor;
     `;
 
     return download_button;
@@ -121,18 +146,34 @@ async function onVideo() {
 }
 
 async function onWatch() {
-    /**@type {HTMLElement} */
     const node = await tryQuerySelect("#title.ytd-watch-metadata yt-formatted-string");
 
     node.parentNode.insertBefore(normalDownloadButton(title), node);
 }
 
 async function onShorts() {
-    /**@type {HTMLElement} */
-    const node = await tryQuerySelect("#actions");
+    const nodes = await tryQuerySelectAll("#actions");
 
-    node.insertBefore(shortsDownloadButton(title), node.firstElementChild);
+    for (const node of nodes) {
+        if (node.clientHeight === 0 || node.querySelector(".yt-dlp-download-button")) {
+            continue;
+        }
+        node.insertBefore(shortsDownloadButton(), node.firstElementChild);
+    }
 }
 
 window.addEventListener("load", onVideo);
 window.addEventListener("popstate", onVideo);
+
+(async function () {
+    if (!location.pathname.startsWith("/shorts")) {
+        return;
+    }
+
+    const observer = new MutationObserver(onShorts);
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+    });
+})()
