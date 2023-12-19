@@ -1,0 +1,21 @@
+{
+    "name": "Youtube Video Downloader",
+    "version": "1.0.0",
+    "description": "Downloads youtube videos in mp4 format",
+    "manifest_version": 3,
+    "author": "AntiMach",
+    "action": {
+        "default_popup": "index.html",
+        "default_title": "Youtube Video Downloader"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://www.youtube.com/*"
+            ],
+            "js": [
+                "content.js"
+            ]
+        }
+    ]
+}
